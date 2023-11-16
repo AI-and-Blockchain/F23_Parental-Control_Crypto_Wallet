@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>OpenAI API</title>
+	<style>
+		body {
+			background-color: #333;
+			color: #fff;
+			font-family: Arial, sans-serif;
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		h1 {
+			color: #66c2ff;
+		}
+
+		input[type='text'],
+		input[type='button'] {
+			padding: 10px;
+			margin: 5px;
+			margin-left: 20px;
+			border: none;
+			border-radius: 5px;
+			width: 150px;
+		}
+
+		input[type='text'] {
+			width: 70%;
+		}
+
+		input[type='text'] {
+			background-color: #444;
+			color: #fff;
+		}
+
+		input[type='button'] {
+			background-color: #66c2ff;
+			color: #333;
+			cursor: pointer;
+		}
+
+		#chatLog {
+			max-height: 80%;
+			/* Set the maximum height for the chat log */
+			overflow-y: auto;
+			/* Enable vertical scrollbar if the content overflows */
+			padding: 10px;
+			margin: 10px;
+			border: 1px solid #66c2ff;
+			border-radius: 5px;
+		}
+
+		.user {
+			background-color: #5588a3;
+			color: #fff;
+			padding: 5px;
+			margin-bottom: 5px;
+			border-radius: 5px;
+		}
+
+		.assistant {
+			background-color: #334455;
+			color: #fff;
+			padding: 5px;
+			margin-bottom: 5px;
+			border-radius: 5px;
+		}
+
+		#wrapperDiv {
+			width: 70%;
+			min-width: 200px;
+			/* text-align: center; */
+			padding-left: 1%;
+		}
+	</style>
+	<script>
+		// Variable to store conversation history
+		let chatHistory = [];
+
+		function makeAPIRequest(content, relativePath) {
+			return new Promise((resolve, reject) => {
+				try {
+					const chatId = localStorage.getItem("chatID");
+					if (!chatId) return alert("please refresh window");
+
+					var req = new XMLHttpRequest();
+					req.open('POST', `${window.location.origin}/${relativePath}`);
+					req.setRequestHeader('chatid', chatId);
+					req.onloadend = (ev) => {
+						resolve(req.response);
+					}
+					req.send(content);
+				}
+				catch (err) {
+					reject(err);
+				}
+			})
+		}
+
+		async function callAPI() {
+			// Get the input value
+			const inputElement = document.getElementById('content');
+			const userInput = String(inputElement.value);
+
+			if (!userInput) return alert("please provide input!");
+
+			// Add user's message to the chat history
+			chatHistory.push({ role: 'user', content: userInput });
+
+			// Clear the input field
+			inputElement.value = '';
+
+			// Add user's message to the chat log
+			updateChatLog();
+
+			// API call/add API response to the chat history
+			try {
+				const uresp = await makeAPIRequest(userInput, 'callAPI')
+				chatHistory.push({ role: 'assistant', content: uresp });
+				updateChatLog();
+			}
+			catch (err) {
+				console.error(err);
+				alert("interaction failed!");
+			}
+
+			// Add API response to the chat log
+			updateChatLog();
+		}
+
+		async function initConvo() {
+			// load chat history
+			var chatID = window.localStorage.getItem('chatID') || undefined;
+			if (!chatID) chatID = crypto.randomUUID();
+			localStorage.setItem("chatID", chatID);
+
+			const convo = await makeAPIRequest(chatID, 'initChat');
+			if (!convo) return;
+
+			// remove the initial response
+			chatHistory = Array.from(JSON.parse(convo)).filter((m) => m.role != "system");
+			console.log(chatHistory);
+			updateChatLog();
+		}
+
+		function updateChatLog() {
+			// Get the chat log element
+			const chatLogElement = document.getElementById('chatLog');
+
+			// Clear the chat log
+			chatLogElement.innerHTML = '';
+
+			// Update the chat log with the conversation history
+			chatHistory.forEach(message => {
+				const messageElement = document.createElement('div');
+				messageElement.classList.add(message.role);
+				messageElement.textContent = message.content;
+				chatLogElement.appendChild(messageElement);
+			});
+		}
+
+		initConvo();
+	</script>
+</head>
+
+<body>
+	<div id="wrapperDiv">
+		<h1>OpenAI API Example</h1>
+		<div id='chatLog'></div>
+		<input type='text' name='content' id='content' placeholder='Enter a message'>
+		<input type='button' value='Call API' id='callApiButton' onclick="callAPI()">
+	</div>
+</body>
+
+</html>
