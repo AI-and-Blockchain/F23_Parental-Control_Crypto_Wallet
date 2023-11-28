@@ -1,5 +1,6 @@
 from typing import Any
 from web3 import Web3, HTTPProvider
+from web3.types import TxParams
 from web3.contract.contract import Contract
 from json import load
 
@@ -12,14 +13,13 @@ private_key: str = w3stuff["private_key"]
 account: str = w3stuff["account"]
 contract: Contract = w3.eth.contract(w3stuff["contract"], abi=parse_json_file("abi.json"))
 
-tx = contract.functions.deposit().build_transaction({
+def transact(func_name: str, txparams: TxParams):
+	tx = contract.functions.__getattr__(func_name)().build_transaction(txparams)
+	signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+	return w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+
+transact("deposit", {
 	"from": account,
 	"value": w3.to_wei(50, "wei"),
-	"nonce": w3.eth.get_transaction_count(account)
+	"nonce": w3.eth.get_transaction_count(account) # type: ignore
 })
-
-signed_tx = w3.eth.account.sign_transaction(tx, private_key)
-
-tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-
-print(f"Transaction hash: {str(tx_hash)}")
