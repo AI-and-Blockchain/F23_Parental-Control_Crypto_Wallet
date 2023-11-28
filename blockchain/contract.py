@@ -8,12 +8,18 @@ w3 = Web3(HTTPProvider("https://sepolia.infura.io/v3/0776cf37dfb04efdacd478388c7
 parse_json_file = lambda filepath: load(open(filepath))
 
 w3stuff: dict[str, Any] = parse_json_file("w3stuff.json")
+private_key: str = w3stuff["private_key"]
 account: str = w3stuff["account"]
 contract: Contract = w3.eth.contract(w3stuff["contract"], abi=parse_json_file("abi.json"))
 
-txn_hash = contract.functions.deposit().transact({
+tx = contract.functions.deposit().build_transaction({
 	"from": account,
-	"value": w3.to_wei(50, "wei")
+	"value": w3.to_wei(50, "wei"),
+	"nonce": w3.eth.get_transaction_count(account)
 })
 
-print(f"Transaction hash: {txn_hash}")
+signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+
+tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+
+print(f"Transaction hash: {str(tx_hash)}")
