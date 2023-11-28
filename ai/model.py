@@ -1,6 +1,5 @@
 
 import numpy as np
-import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import torch
@@ -12,27 +11,6 @@ from fedlab.contrib.algorithm.basic_server import SyncServerHandler
 from fedlab.core.standalone import StandalonePipeline
 from fedlab.utils.functional import evaluate
 from sklearn.model_selection import KFold
-
-
-# __dir__ = os.getcwd()
-DATAPATH = './ai/data'
-
-# Prototype read data function.
-df = pd.read_csv(DATAPATH + "/user-data.csv", delimiter=",")
-df_out = pd.read_csv(DATAPATH + "/not-normalized.csv", delimiter=",")
-
-# Data matrix
-D = df.to_numpy()
-Y = df_out.to_numpy()[:, -1]
-
-# Presumably, (# of points, 5)
-print(D.shape)
-print(Y.shape)
-
-training_data, testing_data = np.column_stack((D[:80, :], Y[:80])), np.column_stack((D[80:, :], Y[80:]))
-
-training_data = training_data.astype(np.float64)
-testing_data = testing_data.astype(np.float64)  # or np.int32 depending on your requirement
 
 
 class SGDSerialClientTrainerTensor(SGDSerialClientTrainer):
@@ -227,17 +205,17 @@ def cross_validation(
     return best_params
 
 
-def createModel():
+def createModel(training_data, testing_data, input_size=5, output_size=4):
     best_params = cross_validation(
                     training_data=training_data, 
-                    input_size=5,
-                    output_size=4
+                    input_size=input_size,
+                    output_size=output_size
                 )
 
     print(best_params)
 
 
-    optimal_hidden_layer_sizes = [best_params[0], 32]
+    optimal_hidden_layer_sizes = [best_params[0]]
     optimal_lr = best_params[1] 
 
     # Train the model
@@ -260,9 +238,9 @@ def createModel():
 
     print(best_accuracy)
 
-
     # Assuming the model is named 'model' and is part of your 'run' function or returned by it
     torch.save(model.state_dict(), './ai/model.pth')
+    return best_params
 
 
 def init_model(optimal_hidden_layer_sizes = [32, 32], input_size=5, output_size=4):
@@ -283,12 +261,7 @@ def init_model(optimal_hidden_layer_sizes = [32, 32], input_size=5, output_size=
 #     prediction = model(new_data)
 
 
-def testModel(model):
-    # Extract features and labels from the dataframe
-    # Assuming the last column contains labels and the rest are features
-    features = df.iloc[:].values
-    labels = df_out.iloc[:, -1].values
-
+def testModel(model, features, labels):
     # Convert NumPy arrays to PyTorch tensors
     features_tensor = torch.tensor(features, dtype=torch.float32)
     labels_tensor = torch.tensor(labels, dtype=torch.float32)
