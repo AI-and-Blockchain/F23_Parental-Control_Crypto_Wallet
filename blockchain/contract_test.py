@@ -1,6 +1,5 @@
-from typing import Any, Optional
+from typing import Any
 from web3 import Web3, HTTPProvider
-from web3.types import TxParams
 from web3.contract.contract import Contract
 from json import load
 
