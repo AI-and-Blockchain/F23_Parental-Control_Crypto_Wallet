@@ -100,27 +100,75 @@
 			/* text-align: center; */
 			padding-left: 1%;
 		}
+
+		.balance-container {
+            text-align: center;
+			display: flex;
+			align-items: center;
+ 		 	justify-content: center;
+        }
+
+        .balance-amount {
+            font-size: 25px;
+            font-weight: bold;
+            color: #706c7d;
+            margin: 10px;
+        }
+
+		.MATIC { color: rgb(219, 219, 219); }
+
+		.ETH { color: rgb(155, 155, 230); }
+
+		.USD { color: green; }
+
+        .balance-label {
+            font-size: 30px;
+            color: #ffffff;
+        }
 	</style>
 
 	<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 	<script>
+		async function checkAcct() {
+			if (!localStorage.getItem('cryptoAcct')) {
+				const accounts = await window.ethereum.request({
+					method: 'eth_requestAccounts',
+					params: [] 
+				});
+
+				// console.log(accounts);
+				const account = accounts[0];
+				localStorage.setItem('cryptoAcct', account);
+			}
+
+			// const fromAddr = localStorage.getItem('cryptoAcct');
+			return localStorage.getItem('cryptoAcct')
+		}
+
+		async function initBals() {
+			const fromAddr = await checkAcct();
+			const web3 = new Web3(window.ethereum);
+			const uBalInWei = await web3.eth.getBalance(fromAddr);
+
+			const ubalInMATIC = Number(uBalInWei) / 1000000000000000000;
+			const uBalInETH = parseFloat(await makeAPIRequest(ubalInMATIC, 'MATICtoETH'));
+			
+			const response = JSON.parse(await makeAPIRequest(0, 'getEthPrice'));
+
+			const uBalUSD = uBalInETH * parseFloat(response['ETHTOUSD']);
+			
+			document.getElementById('amtmatic').innerText = `${ubalInMATIC.toFixed(4)} MATIC`;
+			document.getElementById('amteth').innerText = `${uBalInETH} ETH`;
+			document.getElementById('amtusd').innerText = `${uBalUSD.toFixed(2)} USD`;
+		}
+
+
 		async function sendTransaction() {
 			if (!window.ethereum) return alert("please install the meta mask extension!");
 
 			try {
-				if (!localStorage.getItem('cryptoAcct')) {
-					const accounts = await window.ethereum.request({
-						method: 'eth_requestAccounts',
-						params: [] 
-					});
-
-					// console.log(accounts);
-					const account = accounts[0];
-					localStorage.setItem('cryptoAcct', account);
-				}
-
-				// replace with inputs here
-				const fromAddr = localStorage.getItem('cryptoAcct');  // "0x97D4b7eFCC19155aDDE82f6702743b43b2dA60CB";
+				// "0x97D4b7eFCC19155aDDE82f6702743b43b2dA60CB";
+				const fromAddr = await checkAcct();
 
 				if (!localStorage.getItem('ubd')) {
 					const uBDStr = prompt("Please enter your date of birth", "month/day/year");
@@ -142,7 +190,7 @@
 				const amtUSD = document.getElementById('cryptinp').value;
 				if (isNaN(amtUSD)) return alert("please enter an amount!");
 
-				const response = await makeAPIRequest(amtUSD, 'getEthPrice');
+				const response = JSON.parse(await makeAPIRequest(amtUSD, 'getEthPrice'));
 
 				// get latest transaction
 				const latestReqHash = await makeAPIRequest(fromAddr, 'getLastTrans');
@@ -165,17 +213,17 @@
 				const timeSent = new Date((parseInt(timestampSecHex, 16) * 1000));  // .toLocaleString();
 				const timeDiffMins = Math.floor(((new Date()) - timeSent) / 60000);
 				
-				// get the price of wei
+				// GET USER FUNDS IN WALLET
 				const web3 = new Web3(window.ethereum);
 				const uBalInWei = await web3.eth.getBalance(fromAddr);
 				const ubalInMATIC = Number(uBalInWei) / 1000000000000000000;
 
 				const uBalInETH = await makeAPIRequest(ubalInMATIC, 'MATICtoETH');
 
-				const weiAmt = Web3.utils.numberToHex(Web3.utils.toWei(Number(response).toString(), "ether")); // web3.utils.toWei(Number(response).toString(), "ether");
+				const weiAmt = Web3.utils.numberToHex(Web3.utils.toWei(Number(response['ETHAMT']).toString(), "ether"));
 
 				// check with the back end if allowed
-				const AIResponse = await makeAPIRequest([response, timeDiffMins, uBalInETH, uAge, numTrans], 'isExcess')
+				const AIResponse = await makeAPIRequest([response['ETHAMT'], timeDiffMins, uBalInETH, uAge, numTrans], 'isExcess')
 				const transAuth = JSON.parse(AIResponse);
 
 				switch (transAuth['code']) {
@@ -209,6 +257,7 @@
 				document.getElementById('cryptAddrDest').value = '';
 				document.getElementById('cryptinp').value = '';
 				document.getElementById('spendYourLifeAway').innerText = 'Send $0 of ETH';
+				initBals();
 				
 				// console.log(`your transaction has succeeded!\nCheck it out on https://mumbai.polygonscan.com/tx/${res}`);
 
@@ -330,6 +379,7 @@
 		}
 
 		initConvo();
+		initBals();
 	</script>
 </head>
 
@@ -342,6 +392,15 @@
 
 		<hr>
 		<!-- <button onclick="addToCryptoLog('0xf3e614ce391e95da928d13640e554ba0cd028f03a9736caa0065f165ecb7a72e')">FDKJHKDJFHKDSJ</button> -->
+		<div style="text-align: center;">
+			<div class="balance-label">Current Balances</div>
+			<div class="balance-container">
+				<div id="amtmatic" class="balance-amount MATIC">0 MATIC</div>
+				<div id="amteth" class="balance-amount ETH">0 ETH</div>
+				<div id="amtusd" class="balance-amount USD">0 USD</div>
+			</div>
+		</div>
+		
 		<div style="display: flex;">
 			<div style="width: 70%;">
 			  <input name="cryptinp" id="cryptinp" type="text" placeholder="amount in USD" onkeypress="return checkNum(event)"/>

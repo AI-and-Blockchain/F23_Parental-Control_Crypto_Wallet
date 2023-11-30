@@ -134,8 +134,11 @@ class MyServer(BaseHTTPRequestHandler):
             if (len(inparrstr) == 0): return
 
             inparr = []
-            for i in inparrstr.split(','):
-                inparr.append(float(i))
+            try:
+                for i in inparrstr.split(','):
+                    inparr.append(float(i))
+            except Exception:
+                return self.send_response(422)  # unprocessable entry
             
             outp = classifyTransaction(inparr)
             self.send_response(200)
@@ -156,13 +159,11 @@ class MyServer(BaseHTTPRequestHandler):
                 USDamt = self.rfile.read(content_length).decode("utf-8")
                 ethAMT = float(USDamt) / ETHtoUSD
 
-                # print(str(ethAMT), USDamt, ETHtoUSD)
-
                 self.send_response(200)
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
 
-                self.wfile.write(bytes(json.dumps(ethAMT), "utf-8"))
+                self.wfile.write(bytes(json.dumps({"ETHAMT": ethAMT, "ETHTOUSD": ETHtoUSD}), "utf-8"))
                 
             except Exception as e:
                 print('Error:', str(e))
