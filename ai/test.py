@@ -1,4 +1,5 @@
-from model import *
+from ai import model as fedImp
+import numpy as np
 import pandas as pd
 
 
@@ -12,11 +13,6 @@ if __name__ == "__main__":
     D = df.to_numpy()
     Y = df_out.to_numpy()[:, -1]
 
-    training_data, testing_data = np.column_stack((D[:80, :], Y[:80])), np.column_stack((D[80:, :], Y[80:]))
-    training_data = training_data.astype(np.float64)
-    testing_data = testing_data.astype(np.float64)
-
-    #optimal_hidden_layer_sizes, optimal_lr = createModel(training_data, testing_data)
-    model = init_model([16])
-
-    testModel(model, D, Y)
+    mean = np.mean(D, axis=0)
+    std = np.std(D, axis=0)
+    print(mean, std)

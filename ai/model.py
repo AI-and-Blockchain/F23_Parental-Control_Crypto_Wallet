@@ -321,15 +321,25 @@ def testModel(model, features, labels):
         print(torch.argmax(torch.softmax(output, 0), 0), "==", label)
 
 
-def computePoint(model, x = []):
+def computePoint(model, mean, std_dev, x = []):
+    """
+    Data expected from x:
+        a1: Amount from transaction
+        a2: !IMPORTANT! The difference in time between the 
+            previous transaction and this one
+        a3: Balance
+        a4: Number of transactions
+        a5: Knowledge index
+    """
+
     if (len(x) != 5): return -1
 
-    data_point = torch.tensor(x, dtype=torch.float32)
+    # Normalization process
+    data_point_np = (np.array(x) - mean) * std_dev
+
+    data_point = torch.tensor(data_point_np, dtype=torch.float32)
 
     with torch.no_grad():
         output = model(data_point)
-
-    # print(output)
-    # testModel(model)
 
     return torch.argmax(torch.softmax(output, 0), 0)
