@@ -1,8 +1,10 @@
 
 import numpy as np
 import os
+import pandas as pd
 import matplotlib.pyplot as plt
 import torch
+import json
 import torch.nn as nn
 import itertools
 from torch.utils.data import DataLoader, TensorDataset, random_split
@@ -205,7 +207,28 @@ def cross_validation(
     return best_params
 
 
-def createModel(training_data, testing_data, input_size=5, output_size=4):
+def createModel(input_size=5, output_size=4):
+    print("CREATING MODEL")
+
+    DATAPATH = './ai/data'
+
+    # Prototype read data function.
+    df = pd.read_csv(DATAPATH + "/user-data.csv", delimiter=",")
+    df_out = pd.read_csv(DATAPATH + "/not-normalized.csv", delimiter=",")
+
+    # Data matrix
+    D = df.to_numpy()
+    Y = df_out.to_numpy()[:, -1]
+
+    # Presumably, (# of points, 5)
+    print(D.shape)
+    print(Y.shape)
+
+    training_data, testing_data = np.column_stack((D[:80, :], Y[:80])), np.column_stack((D[80:, :], Y[80:]))
+
+    training_data = training_data.astype(np.float64)
+    testing_data = testing_data.astype(np.float64)  # or np.int32 depending on your requirement
+
     best_params = cross_validation(
                     training_data=training_data, 
                     input_size=input_size,
@@ -215,7 +238,7 @@ def createModel(training_data, testing_data, input_size=5, output_size=4):
     print(best_params)
 
 
-    optimal_hidden_layer_sizes = [best_params[0]]
+    optimal_hidden_layer_sizes = [best_params[0], 32]
     optimal_lr = best_params[1] 
 
     # Train the model
@@ -240,13 +263,34 @@ def createModel(training_data, testing_data, input_size=5, output_size=4):
 
     # Assuming the model is named 'model' and is part of your 'run' function or returned by it
     torch.save(model.state_dict(), './ai/model.pth')
+
+    # add the optimal hidden layers to file
+    with open('./secrets/config.json', 'r') as openfile:
+        # Reading from json file
+        confs = json.load(openfile)
+        openfile.close()
+
+    confs['bestHidden'] = best_params[0]
+    
+    with open("./secrets/config.json", "w") as outfile:
+        json.dump(confs, outfile)
+        outfile.close()
+
     return best_params
 
 
-def init_model(optimal_hidden_layer_sizes = [32, 32], input_size=5, output_size=4):
+def init_model(input_size=5, output_size=4):
+    if (not os.path.exists('./ai/model.pth')):
+        createModel(input_size=input_size, output_size=output_size)
+
+    with open('./secrets/config.json', 'r') as openfile:
+        # Reading from json file
+        confs = json.load(openfile)
+        optimal_hidden_layer_sizes = [confs['bestHidden'], 32]
+        openfile.close()
+
     # Initialize the model
     model = DeepMLP(input_size, optimal_hidden_layer_sizes, output_size)
-
     # Load the saved model parameters
     model.load_state_dict(torch.load('./ai/model.pth'))
 
@@ -266,8 +310,8 @@ def testModel(model, features, labels):
     features_tensor = torch.tensor(features, dtype=torch.float32)
     labels_tensor = torch.tensor(labels, dtype=torch.float32)
 
-    print(labels_tensor)
-    print(features_tensor)
+    # print(labels_tensor)
+    # print(features_tensor)
 
     for i in range(len(features_tensor)):
         feature, label = features_tensor[i], labels_tensor[i]
@@ -286,6 +330,6 @@ def computePoint(model, x = []):
         output = model(data_point)
 
     # print(output)
-    testModel(model)
+    # testModel(model)
 
     return torch.argmax(torch.softmax(output, 0), 0)

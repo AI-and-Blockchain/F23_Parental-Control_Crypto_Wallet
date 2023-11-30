@@ -45,7 +45,7 @@
 		}
 
 		#chatLog {
-			max-height: 80%;
+			max-height: 20em;
 			/* Set the maximum height for the chat log */
 			overflow-y: auto;
 			/* Enable vertical scrollbar if the content overflows */
@@ -71,13 +71,141 @@
 			border-radius: 5px;
 		}
 
+		#cryptoTransactionLog {
+			max-height: 20em;
+			/* Set the maximum height for the chat log */
+			overflow-y: auto;
+			/* Enable vertical scrollbar if the content overflows */
+			padding: 10px;
+			margin: 10px;
+			border: 1px solid #00db80;
+			border-radius: 5px;
+		}
+
+		.cryptoTransaction {
+			background-color: #555aa3;
+			color: #fff;
+			padding: 5px;
+			margin-bottom: 5px;
+			border-radius: 5px;
+		}
+
+		.cryptoTransaction a {
+			color: orange;
+		}
+
 		#wrapperDiv {
-			width: 70%;
+			width: 90%;
 			min-width: 200px;
 			/* text-align: center; */
 			padding-left: 1%;
 		}
 	</style>
+
+	<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+	<script>
+		async function sendTransaction() {
+			if (!window.ethereum) return alert("please install the meta mask extension!");
+
+			try {
+				if (!localStorage.getItem('ckey')) {
+					const accounts = await window.ethereum.request({
+						method: 'eth_requestAccounts',
+						params: [] 
+					});
+
+					console.log(accounts);
+					const account = accounts[0];
+					localStorage.setItem('cryptoAcct', account);
+
+					// const publicKey = await window.ethereum.request({
+					// 	method: 'eth_getEncryptionPublicKey',
+					// 	params: [account],
+					// });
+					
+					// localStorage.setItem('ckey', publicKey);
+				}
+
+				// replace with inputs here
+				const fromAddr = localStorage.getItem('cryptoAcct');  // "0x97D4b7eFCC19155aDDE82f6702743b43b2dA60CB";
+
+				// hard-coded, change later
+				const toAddr = document.getElementById('cryptAddrDest').value;
+
+				const amtUSD = document.getElementById('cryptinp').value;
+				if (isNaN(amtUSD)) return alert("please enter an amount!");
+
+				const response = await makeAPIRequest(amtUSD, 'getEthPrice');
+
+				// get the price of wei
+				const web3 = new Web3();
+				const weiAmt = Web3.utils.numberToHex(Web3.utils.toWei(Number(response).toString(), "ether")); // web3.utils.toWei(Number(response).toString(), "ether");
+				if (!confirm(`are you sure you'd like to send $${amtUSD} (or ${weiAmt}) to ${toAddr}?`)) return;
+				
+				// 	// check with the back end if allowed here
+				// 	const response = await makeAPIRequest([9.351468739346202e-05,-0.4196428571428571,-0.979564362641746,-0.798657369127207,-0.8020313981902603], 'isExcess')
+				// 	const transAuth = JSON.parse(response);
+
+				// 	switch (transAuth['code']) {
+				// 		case 1:
+				// 		case 2:
+				// 			alert(transAuth['msg'])
+				// 			break;
+					
+				// 		default: return alert(transAuth['msg']);
+				// 	}
+					
+				// 	return console.log("good");
+
+				const hex = (n) => Number(n).toString(16);
+			
+				const res = await window.ethereum.request({
+					method: 'eth_sendTransaction',
+					params: [
+						{
+							from: fromAddr,
+							to: toAddr,
+							// gas: "0x5028", //hex(1),
+							gasLimit: "0x5028", //hex(1),
+							maxPriorityFeePerGas: '0x3b9aca00',
+							maxFeePerGas: '0x2540be400',
+							value: weiAmt, // IN WEI
+						},
+					]
+				});
+
+				addToCryptoLog(res);
+				// console.log(`your transaction has succeeded!\nCheck it out on https://mumbai.polygonscan.com/tx/${res}`);
+
+			} catch (error) {
+				console.log({ error });
+				alert("ERROR!");
+			}
+		}
+
+		function addToCryptoLog(transHash) {
+			const log = document.getElementById('cryptoTransactionLog');
+			const toAdd = document.createElement('div');
+			toAdd.innerHTML = `your transaction suceeded!\nCheck it out <a href="https://mumbai.polygonscan.com/tx/${transHash}" target="_blank">here</a>`;
+			toAdd.classList.add("cryptoTransaction");
+			log.appendChild(toAdd);
+			toAdd.scrollIntoView();
+		}
+
+
+		function checkNum(ev) {
+			if ((isNaN(ev.key) || ev.key == ' ') && ev.key != '.' ) return false;
+			else if (ev.key == '.' && ev.target.value.indexOf('.') != -1) return false;
+
+			const btn = document.getElementById('spendYourLifeAway');
+
+			if (ev.target.value.length > 3) btn.value = `Buy $${ev.target.value.substr(0, 4)}... of ETH?`;
+			else btn.value = `Send $${ev.target.value + ev.key} of ETH`;
+
+			return true;
+		}
+	</script>
+
 	<script>
 		// Variable to store conversation history
 		let chatHistory = [];
@@ -144,7 +272,7 @@
 
 			// remove the initial response
 			chatHistory = Array.from(JSON.parse(convo)).filter((m) => m.role != "system");
-			console.log(chatHistory);
+			// console.log(chatHistory);
 			updateChatLog();
 		}
 
@@ -161,6 +289,7 @@
 				messageElement.classList.add(message.role);
 				messageElement.textContent = message.content;
 				chatLogElement.appendChild(messageElement);
+				messageElement.scrollIntoView();
 			});
 		}
 
@@ -174,6 +303,19 @@
 		<div id='chatLog'></div>
 		<input type='text' name='content' id='content' placeholder='Enter a message'>
 		<input type='button' value='Call API' id='callApiButton' onclick="callAPI()">
+
+		<hr>
+		<button onclick="addToCryptoLog('0xf3e614ce391e95da928d13640e554ba0cd028f03a9736caa0065f165ecb7a72e')">FDKJHKDJFHKDSJ</button>
+		<div style="display: flex;">
+			<div style="width: 70%;">
+			  <input name="cryptinp" id="cryptinp" type="text" placeholder="amount in USD" onkeypress="return checkNum(event)"/>
+			  <input name="cryptAddrDest" id="cryptAddrDest" type="text" placeholder="Destination Address"/>
+			  <input type="button" value='Send $0 of ETH' id='spendYourLifeAway' onclick="return sendTransaction(event)">
+			</div>
+			
+			<div id='cryptoTransactionLog' style="width: 50%;"></div>
+		  </div>
+		  
 	</div>
 </body>
 
