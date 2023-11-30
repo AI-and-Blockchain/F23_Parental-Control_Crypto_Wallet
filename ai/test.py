@@ -1,6 +1,14 @@
-from ai import model as fedImp
 import numpy as np
 import pandas as pd
+
+
+def attribute_matrix(X):
+    a2 = X[:, 3]**2 # Age
+    a3 = X[:, 4]**2 # Num Transactions
+    a4 = X[:, 2]**2 # Balance
+    a5 = X[:, 5]**2 # Knowledge Index
+
+    return np.column_stack((a2, a3, a4, a5))
 
 
 if __name__ == "__main__":
@@ -9,10 +17,10 @@ if __name__ == "__main__":
     df = pd.read_csv(DATAPATH + "/user-data.csv", delimiter=",")
     df_out = pd.read_csv(DATAPATH + "/not-normalized.csv", delimiter=",")
 
-    # Data matrix
-    D = df.to_numpy()
-    Y = df_out.to_numpy()[:, -1]
+    D = df_out.to_numpy()
 
-    mean = np.mean(D, axis=0)
-    std = np.std(D, axis=0)
-    print(mean, std)
+    X = attribute_matrix(D)
+
+    max = np.max(X, axis=0)
+    min = np.min(X, axis=0)
+    print(max, min)

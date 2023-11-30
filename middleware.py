@@ -3,15 +3,15 @@
 # imports
 # from ..blockchain import contract_test as contract
 
-MEAN = [0.00133942, -0.1878125,  -0.40564301, -0.31044999, -0.23087019], 
-STD_DEV = [0.01047967, 0.67000948, 0.63722758, 0.60562119, 0.36480168]
+MAX = [4624, 844561, 99918616.56490001, 14041.689721462944] 
+MIN = [144, 2209, 4916.8144, 1124.229547709238]
 
 # region fedlab
 from ai import model as fedImp
 model = fedImp.init_model()
 
 def classifyTransaction(inparr):
-    outpTens = fedImp.computePoint(model, MEAN, STD_DEV, inparr)
+    outpTens = fedImp.computePoint(model, inparr)
     if (outpTens == -1): return {"code": -1, "msg": "ERROR!"}
     
     outp = outpTens.numpy()
@@ -25,7 +25,7 @@ def classifyTransaction(inparr):
 # c = [9.351468739346202e-05,-0.4196428571428571,-0.979564362641746,-0.798657369127207,-0.8020313981902603]  # 3
 
 # for i in [a,b,c]:
-#     outp = fedImp.computePoint(model, MEAN, STD_DEV, i)
+#     outp = fedImp.computePoint(model, MAX, MIN, i)
 #     print("OUTPUT", outp)
 
 # endregion

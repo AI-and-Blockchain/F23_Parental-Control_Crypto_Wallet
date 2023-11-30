@@ -321,26 +321,42 @@ def testModel(model, features, labels):
         print(torch.argmax(torch.softmax(output, 0), 0), "==", label)
 
 
-def computePoint(model, mean, std_dev, x = []):
+def computePoint(model, max, min, x = []):
     """
     Data expected from x:
-        a1: Amount from transaction
-        a2: !IMPORTANT! The difference in time between the 
+        x0: Amount from transaction
+        x1: !IMPORTANT! The difference in time between the 
             previous transaction and this one. If no prev timestamp
             exists, then it's simply 0.
-        a3: Balance
-        a4: Number of transactions
-        a5: Knowledge index
+        x2: Balance
+        x3: Age
+        x4: Number of transactions
+        x5: Knowledge index
     """
-
     if (len(x) != 5): return -1
 
-    # Normalization process
-    data_point_np = (np.array(x) - mean) * std_dev
+    amt = x[0]
+    time_diff = x[1]
+    balance = x[2]
+    age = x[3]
+    num_transact = x[4]
+    knowledge_index = x[5]
 
+    # Lambda func for normalization
+    norm = lambda x, max, min : 2 * ( (x - min) / (max - min) ) - 1
+
+    # We need to transform for output
+    a1 = (1 / time_diff) * ((balance - amt) / balance) 
+    a2 = norm(age, max[0], min[0])
+    a3 = norm(num_transact, max[1], min[1])
+    a4 = norm(balance, max[2], min[2])
+    a5 = norm(knowledge_index, max[3], min[3])
+
+    # Feed Forward
+    data_point_np = np.array([a1,a2,a3,a4,a5])
     data_point = torch.tensor(data_point_np, dtype=torch.float32)
-
     with torch.no_grad():
         output = model(data_point)
-
+    
+    # Softmax
     return torch.argmax(torch.softmax(output, 0), 0)
