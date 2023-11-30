@@ -326,7 +326,8 @@ def computePoint(model, mean, std_dev, x = []):
     Data expected from x:
         a1: Amount from transaction
         a2: !IMPORTANT! The difference in time between the 
-            previous transaction and this one
+            previous transaction and this one. If no prev timestamp
+            exists, then it's simply 0.
         a3: Balance
         a4: Number of transactions
         a5: Knowledge index
