@@ -324,14 +324,14 @@ def testModel(model, features, labels):
 def computePoint(model, max, min, x = []):
     """
     Data expected from x:
-        x0: Amount from transaction
+        x0: Amount from transaction in ETH
         x1: !IMPORTANT! The difference in time between the 
-            previous transaction and this one. If no prev timestamp
+            previous transaction and this one in minutes. If no prev timestamp
             exists, then it's simply 0.
-        x2: Balance
-        x3: Age
-        x4: Number of transactions
-        x5: Knowledge index
+        x2: Balance in ETH
+        x3: User's Age in years
+        x4: Number of total transactions
+        x5: Knowledge index - DEPRECATED
     """
     if (len(x) != 5): return -1
 
@@ -340,7 +340,7 @@ def computePoint(model, max, min, x = []):
     balance = x[2]
     age = x[3]
     num_transact = x[4]
-    knowledge_index = x[5]
+    knowledge_index = 75  # x[5]
 
     # Lambda func for normalization
     norm = lambda x, max, min : 2 * ( (x - min) / (max - min) ) - 1
@@ -355,6 +355,7 @@ def computePoint(model, max, min, x = []):
     # Feed Forward
     data_point_np = np.array([a1,a2,a3,a4,a5])
     data_point = torch.tensor(data_point_np, dtype=torch.float32)
+
     with torch.no_grad():
         output = model(data_point)
     

@@ -11,7 +11,7 @@ parse_json_file = lambda filepath: load(open(filepath))
 w3confs: dict[str, Any] = parse_json_file("./secrets/blockchain.json")
 private_key: str = w3confs["private_key"]
 account: str = w3confs["account"]
-contract: Contract = w3.eth.contract(w3confs["contract"], abi=parse_json_file("./secrets/abi.json"))
+contract: Contract = w3.eth.contract(w3confs["contract"], abi=parse_json_file("./abi.json"))
 
 def transact(func_name: str, txparams: TxParams):
 	tx = contract.functions.__getattr__(func_name)().build_transaction(txparams)

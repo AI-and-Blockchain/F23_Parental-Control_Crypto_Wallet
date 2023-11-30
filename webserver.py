@@ -150,7 +150,6 @@ class MyServer(BaseHTTPRequestHandler):
                 kraken_response = requests.get('https://api.kraken.com/0/public/Ticker?pair=ETHUSD')
                 kraken_data = kraken_response.json()
                 if (kraken_data['error']): return
-
                 ETHtoUSD = float(kraken_data['result']['XETHZUSD']['a'][0])
 
                 content_length = int(self.headers.get("Content-Length"))
@@ -168,6 +167,46 @@ class MyServer(BaseHTTPRequestHandler):
             except Exception as e:
                 print('Error:', str(e))
                 return json.loads({'error': 'Internal Server Error'}), 500
+            
+        
+        elif self.path == '/getLastTrans':
+            content_length = int(self.headers.get("Content-Length"))
+            addr = self.rfile.read(content_length).decode("utf-8")
+            lastTrans = pyfuncs.getLastTrans(addr)
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+
+            self.wfile.write(bytes(lastTrans, "utf-8"))
+
+        elif self.path == '/MATICtoETH':
+            content_length = int(self.headers.get("Content-Length"))
+            MATICAMT = self.rfile.read(content_length).decode("utf-8")
+            ETHAMT = pyfuncs.MATICtoETH(float(MATICAMT))
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+
+            self.wfile.write(bytes(ETHAMT, "utf-8"))
+
+        # elif self.path == '/getTransAmt':
+        #     content_length = int(self.headers.get("Content-Length"))
+        #     toAddr = self.rfile.read(content_length).decode("utf-8")
+            
+        #     ethScanReq = f"https://api.etherscan.io/api?module=account&action=txlist&address={toAddr}&startblock=0&endblock=99999999&page=1&offset=10&sort=asc&apikey=99N6CXU2MTIQZVEF7T6488A3TCRIADFQ2I"
+            
+        #     print(ethScanReq)
+        #     ethTransResp = requests.get(ethScanReq)
+        #     # if (ethTransResp['error']): return
+        #     print(ethTransResp)
+
+        else:
+            print("UNKNOWN ENDPOINT", self.path)
+            self.send_response(404)
+
+
 
 
 atexit.register(save_chat_logs)

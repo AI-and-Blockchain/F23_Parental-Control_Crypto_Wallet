@@ -2,6 +2,8 @@
 
 # imports
 # from ..blockchain import contract_test as contract
+from blockchain import pyfuncs
+
 
 MAX = [4624, 844561, 99918616.56490001, 14041.689721462944] 
 MIN = [144, 2209, 4916.8144, 1124.229547709238]
@@ -11,7 +13,7 @@ from ai import model as fedImp
 model = fedImp.init_model()
 
 def classifyTransaction(inparr):
-    outpTens = fedImp.computePoint(model, inparr)
+    outpTens = fedImp.computePoint(model, MAX, MIN, inparr)
     if (outpTens == -1): return {"code": -1, "msg": "ERROR!"}
     
     outp = outpTens.numpy()

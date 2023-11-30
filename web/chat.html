@@ -108,26 +108,33 @@
 			if (!window.ethereum) return alert("please install the meta mask extension!");
 
 			try {
-				if (!localStorage.getItem('ckey')) {
+				if (!localStorage.getItem('cryptoAcct')) {
 					const accounts = await window.ethereum.request({
 						method: 'eth_requestAccounts',
 						params: [] 
 					});
 
-					console.log(accounts);
+					// console.log(accounts);
 					const account = accounts[0];
 					localStorage.setItem('cryptoAcct', account);
-
-					// const publicKey = await window.ethereum.request({
-					// 	method: 'eth_getEncryptionPublicKey',
-					// 	params: [account],
-					// });
-					
-					// localStorage.setItem('ckey', publicKey);
 				}
 
 				// replace with inputs here
 				const fromAddr = localStorage.getItem('cryptoAcct');  // "0x97D4b7eFCC19155aDDE82f6702743b43b2dA60CB";
+
+				if (!localStorage.getItem('ubd')) {
+					const uBDStr = prompt("Please enter your date of birth", "month/day/year");
+					const ubd = new Date(uBDStr);
+					localStorage.setItem('ubd', ubd.toString());
+				}
+				const uAge = (new Date()).getFullYear() - (new Date(localStorage.getItem('ubd'))).getFullYear();
+
+				// makeAPIRequest(fromAddr, 'getTransAmt')
+				const numTransHex = await window.ethereum.request({
+					method: 'eth_getTransactionCount',
+					params: [fromAddr] 
+				});
+				const numTrans = Number(numTransHex)
 
 				// hard-coded, change later
 				const toAddr = document.getElementById('cryptAddrDest').value;
@@ -137,28 +144,52 @@
 
 				const response = await makeAPIRequest(amtUSD, 'getEthPrice');
 
-				// get the price of wei
-				const web3 = new Web3();
-				const weiAmt = Web3.utils.numberToHex(Web3.utils.toWei(Number(response).toString(), "ether")); // web3.utils.toWei(Number(response).toString(), "ether");
-				if (!confirm(`are you sure you'd like to send $${amtUSD} (or ${weiAmt}) to ${toAddr}?`)) return;
+				// get latest transaction
+				const latestReqHash = await makeAPIRequest(fromAddr, 'getLastTrans');
+				const latestReq = await window.ethereum.request({
+					"method": "eth_getTransactionByHash",
+					"params": [
+						latestReqHash
+					]
+				});
+
+				const latestBlock = await window.ethereum.request({
+					"method": "eth_getBlockByHash",
+					"params": [
+						latestReq['blockHash'],
+						true  // hydrated?
+					]
+				});
+
+				const timestampSecHex = latestBlock['timestamp']
+				const timeSent = new Date((parseInt(timestampSecHex, 16) * 1000));  // .toLocaleString();
+				const timeDiffMins = Math.floor(((new Date()) - timeSent) / 60000);
 				
-				// 	// check with the back end if allowed here
-				// 	const response = await makeAPIRequest([9.351468739346202e-05,-0.4196428571428571,-0.979564362641746,-0.798657369127207,-0.8020313981902603], 'isExcess')
-				// 	const transAuth = JSON.parse(response);
+				// get the price of wei
+				const web3 = new Web3(window.ethereum);
+				const uBalInWei = await web3.eth.getBalance(fromAddr);
+				const ubalInMATIC = Number(uBalInWei) / 1000000000000000000;
 
-				// 	switch (transAuth['code']) {
-				// 		case 1:
-				// 		case 2:
-				// 			alert(transAuth['msg'])
-				// 			break;
-					
-				// 		default: return alert(transAuth['msg']);
-				// 	}
-					
-				// 	return console.log("good");
+				const uBalInETH = await makeAPIRequest(ubalInMATIC, 'MATICtoETH');
 
+				const weiAmt = Web3.utils.numberToHex(Web3.utils.toWei(Number(response).toString(), "ether")); // web3.utils.toWei(Number(response).toString(), "ether");
+
+				// check with the back end if allowed
+				const AIResponse = await makeAPIRequest([response, timeDiffMins, uBalInETH, uAge, numTrans], 'isExcess')
+				const transAuth = JSON.parse(AIResponse);
+
+				switch (transAuth['code']) {
+					case 1:
+					case 2:
+						alert(transAuth['msg'])
+						break;
+
+					default: return alert(transAuth['msg']);
+				}
+				
+				if (!confirm(`are you sure you'd like to send $${amtUSD} (or ${weiAmt}) to ${toAddr}?`)) return;
 				const hex = (n) => Number(n).toString(16);
-			
+				
 				const res = await window.ethereum.request({
 					method: 'eth_sendTransaction',
 					params: [
@@ -175,6 +206,10 @@
 				});
 
 				addToCryptoLog(res);
+				document.getElementById('cryptAddrDest').value = '';
+				document.getElementById('cryptinp').value = '';
+				document.getElementById('spendYourLifeAway').innerText = 'Send $0 of ETH';
+				
 				// console.log(`your transaction has succeeded!\nCheck it out on https://mumbai.polygonscan.com/tx/${res}`);
 
 			} catch (error) {
@@ -183,6 +218,7 @@
 			}
 		}
 
+		
 		function addToCryptoLog(transHash) {
 			const log = document.getElementById('cryptoTransactionLog');
 			const toAdd = document.createElement('div');
@@ -305,7 +341,7 @@
 		<input type='button' value='Call API' id='callApiButton' onclick="callAPI()">
 
 		<hr>
-		<button onclick="addToCryptoLog('0xf3e614ce391e95da928d13640e554ba0cd028f03a9736caa0065f165ecb7a72e')">FDKJHKDJFHKDSJ</button>
+		<!-- <button onclick="addToCryptoLog('0xf3e614ce391e95da928d13640e554ba0cd028f03a9736caa0065f165ecb7a72e')">FDKJHKDJFHKDSJ</button> -->
 		<div style="display: flex;">
 			<div style="width: 70%;">
 			  <input name="cryptinp" id="cryptinp" type="text" placeholder="amount in USD" onkeypress="return checkNum(event)"/>
