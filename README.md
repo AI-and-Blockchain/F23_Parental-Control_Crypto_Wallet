@@ -16,7 +16,8 @@ Get help from AI in managing your (or you child's) cryptocurrencies, with measur
   "bestHidden": 64
 }
 ```
-3. run `webserver.py`
+3. run `pip install -r requirements.txt`
+4. run `python webserver.py`
 
 
 ## Errors and Debugging

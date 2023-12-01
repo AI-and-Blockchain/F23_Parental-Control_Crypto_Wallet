@@ -4,3 +4,4 @@ bin
 temp.*
 !abi.json
 __pycache__
+/venv
