@@ -17,6 +17,7 @@
 
 		h1 {
 			color: #66c2ff;
+			text-align: center;
 		}
 
 		input[type='text'],
@@ -59,6 +60,7 @@
 			background-color: #5588a3;
 			color: #fff;
 			padding: 5px;
+			padding-left: 15px;
 			margin-bottom: 5px;
 			border-radius: 5px;
 		}
@@ -67,6 +69,7 @@
 			background-color: #334455;
 			color: #fff;
 			padding: 5px;
+			padding-left: 15px;
 			margin-bottom: 5px;
 			border-radius: 5px;
 		}
@@ -124,12 +127,133 @@
         .balance-label {
             font-size: 30px;
             color: #ffffff;
+			text-align: center;
         }
+
+		
+		/* POPUP stuff */
+		.help-button {
+            background-color: #6C757D; /* Ethereum purple button color */
+            color: #FFFFFF; /* White text on the button */
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 20px;
+            border-radius: 5px;
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(108, 117, 125, 0.8); /* Ethereum purple background with opacity */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .popup-content {
+            /* background-color: #947b7b; White background for popup */
+			background-color: rgb(108, 117, 125);
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .close-button {
+            background-color: #000000; /* Ethereum purple button color */
+            color: #FFFFFF; /* White text on the button */
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+
+		/* STATS POPUP */
+		.stats-popup {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.5);
+		}
+
+		.stats-popup-content {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: rgba(45, 39, 109, 0.8);;
+			padding: 20px;
+			max-width: 80%;
+			max-height: 80%;
+			overflow-y: auto;
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+		}
+
+		.stats-popup-close {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			font-size: 20px;
+			cursor: pointer;
+		}
+
+		.stats-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-top: 20px;
+		}
+
+		.stats-table th, .stats-table td {
+			border: 1px solid #ddd;
+			padding: 10px;
+			text-align: left;
+		}
+
+		.stats-table th {
+			background-color: rgba(45, 39, 109, 0.8);
+		}
+
+		.stats-popup button {
+			padding: 10px 20px;
+			margin: 10px;
+			font-size: 16px;
+			cursor: pointer;
+			background-color: #4CAF50;
+			color: #fff;
+			border: none;
+			border-radius: 4px;
+		}
+
+		.stats-popup button:hover {
+			background-color: #45a049;
+		}
+
+		.stats-popup-close {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			font-size: 30px;
+			cursor: pointer;
+			color: #555;
+		}
 	</style>
 
 	<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 	<script>
-		async function checkAcct() {
+		async function getAcct() {
+			if (!window.ethereum) return alert("please install the meta mask extension!");
+
 			if (!localStorage.getItem('cryptoAcct')) {
 				const accounts = await window.ethereum.request({
 					method: 'eth_requestAccounts',
@@ -146,7 +270,7 @@
 		}
 
 		async function initBals() {
-			const fromAddr = await checkAcct();
+			const fromAddr = await getAcct();
 			const web3 = new Web3(window.ethereum);
 			const uBalInWei = await web3.eth.getBalance(fromAddr);
 
@@ -167,8 +291,7 @@
 			if (!window.ethereum) return alert("please install the meta mask extension!");
 
 			try {
-				// "0x97D4b7eFCC19155aDDE82f6702743b43b2dA60CB";
-				const fromAddr = await checkAcct();
+				const fromAddr = await getAcct();
 
 				if (!localStorage.getItem('ubd')) {
 					const uBDStr = prompt("Please enter your date of birth", "month/day/year");
@@ -289,6 +412,117 @@
 
 			return true;
 		}
+
+		const dataObject = {};
+
+		async function openStatsPopup() {
+			var statsPopup = document.getElementById('statspopup');
+			var statsTable = document.getElementById('stats-table');
+
+			const addr = await getAcct();
+			const maps = JSON.parse(await makeAPIRequest(addr, 'getTransactions'));
+			// dataObject = {"IN": maps[0], "OUT": maps[1]};
+			dataObject["IN"] = maps[0];
+			dataObject["OUT"] = maps[1];
+
+			// Clear existing content
+			statsTable.innerHTML = '';
+
+			console.log(dataObject)
+			// Create a table header
+			var headerRow = statsTable.insertRow();
+			var headers = ["Direction", "Address", "Transaction Hash", "Block Number", "Timestamp", "Amount", "Fee", "Gas Price"];
+
+			headers.forEach(function(headerText) {
+				var th = document.createElement('th');
+				th.textContent = headerText;
+				headerRow.appendChild(th);
+			});
+
+			// Populate the table with data
+			for (var direction in dataObject) {
+				for (var address in dataObject[direction]) {
+				dataObject[direction][address].forEach(function(transaction) {
+						var row = statsTable.insertRow();
+						var values = [direction, address, transaction.transaction_hash, transaction.block_number, transaction.timestamp, transaction.amount, transaction.fee, transaction.gas_price];
+
+						values.forEach(function(value) {
+							var cell = row.insertCell();
+							cell.textContent = value;
+						});
+					});
+				}
+			}
+
+			// Show the stats popup
+			statsPopup.style.display = 'block';
+		}
+
+		// Function to close the stats popup
+		function closeStatsPopup() {
+			var statsPopup = document.getElementById('statspopup');
+			statsPopup.style.display = 'none';
+		}
+
+		var currentDisplay = 'original';
+
+		// Function to toggle between displays
+		function toggleDisplay() {
+			var statsTableContainer = document.getElementById('stats-table-container');
+			var addressStatsContainer = document.getElementById('address-stats-container');
+
+			if (currentDisplay === 'original') {
+				currentDisplay = 'addressStats';
+				statsTableContainer.style.display = 'none';
+				addressStatsContainer.style.display = 'block';
+			} else {
+				currentDisplay = 'original';
+				statsTableContainer.style.display = 'block';
+				addressStatsContainer.style.display = 'none';
+			}
+		}
+
+		function toggleDisplay() {
+			var statsTableContainer = document.getElementById('stats-table-container');
+			var addressStatsContainer = document.getElementById('address-stats-container');
+
+			if (currentDisplay === 'original') {
+				currentDisplay = 'addressStats';
+				statsTableContainer.style.display = 'none';
+				addressStatsContainer.style.display = 'block';
+			} else {
+				currentDisplay = 'original';
+				statsTableContainer.style.display = 'block';
+				addressStatsContainer.style.display = 'none';
+			}
+		}
+
+		// Function to show the number of times an address has sent and received transactions
+		function showAddressStats() {
+			var addressInput = document.getElementById('addressInput').value;
+			var addressStats = document.getElementById('addressStats');
+
+			var sentCount = 0;
+			var receivedCount = 0;
+
+			for (var direction in dataObject) {
+				for (var address in dataObject[direction]) {
+					if (address === addressInput) {
+					if (direction === 'IN') {
+						receivedCount += dataObject[direction][address].length;
+					} else if (direction === 'OUT') {
+						sentCount += dataObject[direction][address].length;
+					}
+					}
+				}
+			}
+
+			addressStats.textContent = `Address ${addressInput} has sent ${sentCount} transactions and received ${receivedCount} transactions.`;
+		}
+
+		// document.addEventListener('DOMContentLoaded', function() {
+		// 	openPopup();
+		// });
 	</script>
 
 	<script>
@@ -378,6 +612,15 @@
 			});
 		}
 
+		function openPopup() {
+            document.getElementById('helpPopup').style.display = 'flex';
+        }
+
+        function closePopup() {
+            document.getElementById('helpPopup').style.display = 'none';
+        }
+
+
 		initConvo();
 		initBals();
 	</script>
@@ -385,10 +628,20 @@
 
 <body>
 	<div id="wrapperDiv">
-		<h1>OpenAI API Example</h1>
-		<div id='chatLog'></div>
-		<input type='text' name='content' id='content' placeholder='Enter a message'>
-		<input type='button' value='Call API' id='callApiButton' onclick="callAPI()">
+		<h1>Supervised Crypto Wallet</h1>
+
+		<div style="text-align: center; /* position: fixed; bottom: 10%; left: 0; right: 0; */">
+			<button class="help-button" onclick="openPopup()">Help</button>
+			<button class="help-button" onclick="openStatsPopup()">Statistics</button>
+		</div>
+		
+		<hr>
+		<div>
+			<div class="balance-label">AI Chat</div>
+			<div id='chatLog'></div>
+			<input type='text' name='content' id='content' placeholder='Enter a message'>
+			<input type='button' value='Send Message' id='callApiButton' onclick="callAPI()">
+		</div>
 
 		<hr>
 		<!-- <button onclick="addToCryptoLog('0xf3e614ce391e95da928d13640e554ba0cd028f03a9736caa0065f165ecb7a72e')">FDKJHKDJFHKDSJ</button> -->
@@ -409,8 +662,36 @@
 			</div>
 			
 			<div id='cryptoTransactionLog' style="width: 50%;"></div>
-		  </div>
-		  
+		</div>
+
+		<!-- POP-UPS -->
+		<div class="popup" id="helpPopup">
+			<div class="popup-content">
+				<h1 style="color: white; margin-top: 0px;">HELP</h1>
+				<p>Enter a message to ask your AI helper any questions you may have</p>
+				<p>To send crypto, enter the amount in USD, then enter the destination address and click the send button</p>
+				<p>To see statistics about your spending, click <a style="text-decoration: underline; cursor: pointer;" onclick="javascript:(function() { closePopup(); openStatsPopup() })()">Statistics</a></p>
+				<p><i>Your transactions are run past an AI which categorizes them based on things like history and current balance help you balance your spending habits</i></p>
+				<button class="close-button" onclick="closePopup()">Close</button>
+			</div>
+		</div>
+
+
+		<div id="statspopup" class="stats-popup" style="display:none;">
+			<div class="stats-popup-content">
+				<span class="stats-popup-close" onclick="closeStatsPopup()">&times;</span>
+				<button onclick="toggleDisplay()">Toggle Display</button>
+				<div id="stats-table-container">
+					<table id="stats-table" border="1"></table>
+				</div>
+				<div id="address-stats-container" style="display:none;">
+					<label for="addressInput">Enter Address:</label>
+					<input type="text" id="addressInput">
+					<button onclick="showAddressStats()">Show Address Stats</button>
+					<p id="addressStats"></p>
+				</div>
+			</div>
+		</div>
 	</div>
 </body>
 

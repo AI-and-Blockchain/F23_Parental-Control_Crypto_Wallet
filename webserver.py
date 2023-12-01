@@ -203,6 +203,17 @@ class MyServer(BaseHTTPRequestHandler):
         #     # if (ethTransResp['error']): return
         #     print(ethTransResp)
 
+        elif self.path == '/getTransactions':
+            content_length = int(self.headers.get("Content-Length"))
+            ADDR = self.rfile.read(content_length).decode("utf-8")
+            [inMap, outMap] = pyfuncs.coalateTransactions(ADDR)
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+
+            self.wfile.write(bytes(json.dumps([inMap, outMap]), "utf-8"))
+
         else:
             print("UNKNOWN ENDPOINT", self.path)
             self.send_response(404)
