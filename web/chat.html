@@ -323,6 +323,8 @@
 
 				// get latest transaction
 				const latestReqHash = await makeAPIRequest(fromAddr, 'getLastTrans');
+				var timeDiffMins = 1;
+				
 				const latestReq = await window.ethereum.request({
 					"method": "eth_getTransactionByHash",
 					"params": [
@@ -330,20 +332,19 @@
 					]
 				});
 
-				const latestBlock = await window.ethereum.request({
-					"method": "eth_getBlockByHash",
-					"params": [
-						latestReq['blockHash'],
-						true  // hydrated?
-					]
-				});
+				console.log(latestReq)
+				if (latestReq) {
+					const latestBlock = await window.ethereum.request({
+						"method": "eth_getBlockByHash",
+						"params": [
+							latestReq['blockHash'],
+							true  // hydrated?
+						]
+					});
 
-				// THIS MIGHT BE IN MILLISECONDS, TEST LATER
 				const timestampSecHex = latestBlock['timestamp']
 				const timeSent = new Date((parseInt(timestampSecHex, 16) * 1000));  // .toLocaleString();
 				const timeDiffMins = Math.floor(((new Date()) - timeSent) / 60000);
-
-				// #endregion
 				
 				// GET USER FUNDS IN WALLET
 				const web3 = new Web3(window.ethereum);
@@ -398,6 +399,7 @@
 			const log = document.getElementById('cryptoTransactionLog');
 			const toAdd = document.createElement('div');
 			toAdd.innerHTML = `your transaction suceeded!\nCheck it out <a href="https://mumbai.polygonscan.com/tx/${transHash}" target="_blank">here</a>`;
+			// https://sepolia.etherscan.io/tx
 			toAdd.classList.add("cryptoTransaction");
 			log.appendChild(toAdd);
 			toAdd.scrollIntoView();
