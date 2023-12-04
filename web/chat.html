@@ -332,7 +332,6 @@
 					]
 				});
 
-				console.log(latestReq)
 				if (latestReq) {
 					const latestBlock = await window.ethereum.request({
 						"method": "eth_getBlockByHash",
@@ -342,9 +341,10 @@
 						]
 					});
 
-				const timestampSecHex = latestBlock['timestamp']
-				const timeSent = new Date((parseInt(timestampSecHex, 16) * 1000));  // .toLocaleString();
-				const timeDiffMins = Math.floor(((new Date()) - timeSent) / 60000);
+					const timestampSecHex = latestBlock['timestamp']
+					const timeSent = new Date((parseInt(timestampSecHex, 16) * 1000));  // .toLocaleString();
+					timeDiffMins = Math.floor(((new Date()) - timeSent) / 60000);
+				}
 				
 				// GET USER FUNDS IN WALLET
 				const web3 = new Web3(window.ethereum);
