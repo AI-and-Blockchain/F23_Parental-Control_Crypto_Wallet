@@ -24,7 +24,8 @@ def callAPI(chatId, uinp):
             return 'Please provide a message!'
         
         # get the previous data or init
-        if chatId not in chat_logs: return print("AAAAAAAA")
+        if chatId not in chat_logs:
+            chat_logs[chatId] = STARTCONVOPROMPT.copy()
 
         chat_logs[chatId].append({"role": "user", "content": "user: " + uinp})
 
@@ -103,7 +104,6 @@ class MyServer(BaseHTTPRequestHandler):
             self.end_headers()
 
             if chatId not in chat_logs:
-                print(chatId, STARTCONVOPROMPT)
                 chat_logs[chatId] = STARTCONVOPROMPT.copy()
 
             self.wfile.write(bytes(json.dumps(chat_logs[chatId]), "utf-8"))
@@ -152,7 +152,8 @@ class MyServer(BaseHTTPRequestHandler):
             try:
                 kraken_response = requests.get('https://api.kraken.com/0/public/Ticker?pair=ETHUSD')
                 kraken_data = kraken_response.json()
-                if (kraken_data['error']): return
+                if (kraken_data['error']): return self.send_response(500)
+
                 ETHtoUSD = float(kraken_data['result']['XETHZUSD']['a'][0])
 
                 content_length = int(self.headers.get("Content-Length"))

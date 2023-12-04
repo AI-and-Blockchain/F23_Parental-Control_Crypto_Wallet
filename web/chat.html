@@ -4,7 +4,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>OpenAI API</title>
+	<title>Supervised Crypto Wallet</title>
 	<style>
 		body {
 			background-color: #333;
@@ -309,14 +309,19 @@
 
 				// hard-coded, change later
 				const toAddr = document.getElementById('cryptAddrDest').value;
+				if (!toAddr) return;
 
 				const amtUSD = document.getElementById('cryptinp').value;
 				if (isNaN(amtUSD)) return alert("please enter an amount!");
 
 				const response = JSON.parse(await makeAPIRequest(amtUSD, 'getEthPrice'));
 
+				// #region get timestamp
+
 				// get latest transaction
 				const latestReqHash = await makeAPIRequest(fromAddr, 'getLastTrans');
+				var timeDiffMins = 1;
+				
 				const latestReq = await window.ethereum.request({
 					"method": "eth_getTransactionByHash",
 					"params": [
@@ -324,17 +329,23 @@
 					]
 				});
 
-				const latestBlock = await window.ethereum.request({
-					"method": "eth_getBlockByHash",
-					"params": [
-						latestReq['blockHash'],
-						true  // hydrated?
-					]
-				});
+				console.log(latestReq)
+				if (latestReq) {
+					const latestBlock = await window.ethereum.request({
+						"method": "eth_getBlockByHash",
+						"params": [
+							latestReq['blockHash'],
+							true  // hydrated?
+						]
+					});
 
-				const timestampSecHex = latestBlock['timestamp']
-				const timeSent = new Date((parseInt(timestampSecHex, 16) * 1000));  // .toLocaleString();
-				const timeDiffMins = Math.floor(((new Date()) - timeSent) / 60000);
+					// THIS MIGHT BE IN MILLISECONDS, TEST LATER
+					const timestampSecHex = latestBlock['timestamp']
+					const timeSent = new Date((parseInt(timestampSecHex, 16) * 1000));  // .toLocaleString();
+					timeDiffMins = Math.floor(((new Date()) - timeSent) / 60000);
+				}
+
+				// #endregion
 				
 				// GET USER FUNDS IN WALLET
 				const web3 = new Web3(window.ethereum);
@@ -349,14 +360,8 @@
 				const AIResponse = await makeAPIRequest([response['ETHAMT'], timeDiffMins, uBalInETH, uAge, numTrans], 'isExcess')
 				const transAuth = JSON.parse(AIResponse);
 
-				switch (transAuth['code']) {
-					case 1:
-					case 2:
-						alert(transAuth['msg'])
-						break;
-
-					default: return alert(transAuth['msg']);
-				}
+				if (transAuth['code'] == 3 || transAuth['code'] == -1) return alert(transAuth['msg']);
+				alert(transAuth['msg']);
 				
 				if (!confirm(`are you sure you'd like to send $${amtUSD} (or ${weiAmt}) to ${toAddr}?`)) return;
 				const hex = (n) => Number(n).toString(16);
@@ -395,6 +400,7 @@
 			const log = document.getElementById('cryptoTransactionLog');
 			const toAdd = document.createElement('div');
 			toAdd.innerHTML = `your transaction suceeded!\nCheck it out <a href="https://mumbai.polygonscan.com/tx/${transHash}" target="_blank">here</a>`;
+			// https://sepolia.etherscan.io/tx
 			toAdd.classList.add("cryptoTransaction");
 			log.appendChild(toAdd);
 			toAdd.scrollIntoView();
@@ -445,6 +451,7 @@
 				dataObject[direction][address].forEach(function(transaction) {
 						var row = statsTable.insertRow();
 						var values = [direction, address, transaction.transaction_hash, transaction.block_number, transaction.timestamp, transaction.amount, transaction.fee, transaction.gas_price];
+						// var values = [direction, address, "Transaction Hash", "Block Number", transaction.timestamp, transaction.amount, transaction.fee, transaction.gas_price];
 
 						values.forEach(function(value) {
 							var cell = row.insertCell();
@@ -502,14 +509,14 @@
 			var addressInput = document.getElementById('addressInput').value;
 			var addressStats = document.getElementById('addressStats');
 
+			var recCount = 0;
 			var sentCount = 0;
-			var receivedCount = 0;
 
 			for (var direction in dataObject) {
 				for (var address in dataObject[direction]) {
 					if (address === addressInput) {
 					if (direction === 'IN') {
-						receivedCount += dataObject[direction][address].length;
+						recCount += dataObject[direction][address].length;
 					} else if (direction === 'OUT') {
 						sentCount += dataObject[direction][address].length;
 					}
@@ -517,7 +524,7 @@
 				}
 			}
 
-			addressStats.textContent = `Address ${addressInput} has sent ${sentCount} transactions and received ${receivedCount} transactions.`;
+			addressStats.textContent = `You have sent ${sentCount} transaction${(sentCount != 1) ? 's' : ''} to and received ${recCount} transaction${(recCount != 1) ? 's' : ''} from ${addressInput}.`;
 		}
 
 		// document.addEventListener('DOMContentLoaded', function() {
